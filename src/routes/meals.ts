@@ -95,4 +95,53 @@ export const MealsRoutes = async (app: FastifyInstance) => {
       return reply.status(201).send({ name, description, includedInDiet })
     },
   )
+
+  // Delete meal
+  app.delete(
+    '/:id',
+    {
+      preHandler: [checkSessionIdExists],
+    },
+    async (req, reply) => {
+      const getMealParamsSchema = z.object({
+        id: z.string().uuid(),
+      })
+
+      const { id } = getMealParamsSchema.parse(req.params)
+
+      const sessionId = req.cookies.sessionId
+
+      const checkSessionId = await knex('mealHistory')
+        .where({
+          session_id: sessionId,
+        })
+        .first()
+
+      if (sessionId !== checkSessionId?.session_id) {
+        throw new AppError('Unauthorized')
+      }
+
+      await knex('mealHistory').where({ id }).delete()
+
+      return reply.status(201).send('Meal deleted')
+    },
+  )
+
+  // List all meals
+  app.get(
+    '/',
+    {
+      preHandler: [checkSessionIdExists],
+    },
+    async (req) => {
+      const { sessionId } = req.cookies
+
+      const meals = await knex('mealHistory')
+        .where({ session_id: sessionId })
+        .select()
+
+      return { meals }
+    },
+  )
+
 }
