@@ -144,4 +144,34 @@ export const MealsRoutes = async (app: FastifyInstance) => {
     },
   )
 
+  // List a meal
+  app.get(
+    '/:id',
+    {
+      preHandler: [checkSessionIdExists],
+    },
+    async (req) => {
+      const getMealParamsSchema = z.object({
+        id: z.string().uuid(),
+      })
+
+      const { id } = getMealParamsSchema.parse(req.params)
+
+      const sessionId = req.cookies.sessionId
+
+      const checkSessionId = await knex('mealHistory')
+        .where({
+          session_id: sessionId,
+        })
+        .first()
+
+      if (sessionId !== checkSessionId?.session_id) {
+        throw new AppError('Unauthorized')
+      }
+
+      const meals = await knex('mealHistory').where({ id }).select()
+
+      return { meals }
+    },
+  )
 }
