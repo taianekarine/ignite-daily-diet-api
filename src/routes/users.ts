@@ -4,6 +4,7 @@ import { knex } from '../database'
 import { z } from 'zod'
 import { hash, compare } from 'bcrypt'
 import { AppError } from '../utils/AppError'
+import { checkSessionIdExists } from '../middlewares/checkSessionIdExists'
 
 export const UsersRoutes = async (app: FastifyInstance) => {
   // Register User
@@ -77,5 +78,30 @@ export const UsersRoutes = async (app: FastifyInstance) => {
     }
 
     return reply.status(201).send({ user })
+  })
+
+  // Retrieves a user's metrics
+  app.get('/', { preHandler: [checkSessionIdExists] }, async (req) => {
+    const sessionId = req.cookies.sessionId
+
+    const checkSessionId = await knex('users')
+      .where({
+        session_id: sessionId,
+      })
+      .first()
+
+    if (sessionId !== checkSessionId?.session_id) {
+      throw new AppError('Unauthorized')
+    }
+
+    const [weightUser] = await knex('users')
+      .select('weight')
+      .where({ session_id: sessionId })
+
+    const [heightUser] = await knex('users')
+      .select('height')
+      .where({ session_id: sessionId })
+
+    return { weightUser, heightUser }
   })
 }
