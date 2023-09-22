@@ -11,7 +11,15 @@ declare module 'knex/types/tables' {
       weight: number
       height: number
       created_at: string
-      sessions_id?: string
+      session_id?: string
+    }
+    mealHistory: {
+      id: string
+      name: string
+      description: string
+      includedInDiet: boolean
+      created_at: string
+      session_id?: string
     }
   }
 }
