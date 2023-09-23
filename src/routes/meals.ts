@@ -174,4 +174,49 @@ export const MealsRoutes = async (app: FastifyInstance) => {
       return { meals }
     },
   )
+
+  // Sumary
+  app.get(
+    '/summary',
+
+    {
+      preHandler: [checkSessionIdExists],
+    },
+    async (req) => {
+      const { sessionId } = req.cookies
+
+      const [count] = await knex('mealHistory')
+        .where({ session_id: sessionId })
+        .count({ totalMeals: '*' })
+
+      const [countMealsWithinTheDiet] = await knex('mealHistory')
+        .where({ session_id: sessionId })
+        .andWhere('includedInDiet', 1)
+        .count({ totalMeals: '*' })
+
+      const [countMealsOutsideOfTheDiet] = await knex('mealHistory')
+        .where({ session_id: sessionId })
+        .andWhere('includedInDiet', 0)
+        .count({ totalMeals: '*' })
+
+      const mealHistory = await knex('mealHistory').select('includedInDiet')
+      const includedInDietString = mealHistory
+        .map((record) => record.includedInDiet)
+        .join('')
+
+      const sequenceOfMealsWithinTheDiet = includedInDietString.split('0')
+      const longestMealSequenceWithinTheDiet =
+        sequenceOfMealsWithinTheDiet.reduce(
+          (max, sequence) => Math.max(max, sequence.length),
+          0,
+        )
+
+      return {
+        count,
+        countMealsWithinTheDiet,
+        countMealsOutsideOfTheDiet,
+        longestMealSequenceWithinTheDiet,
+      }
+    },
+  )
 }
